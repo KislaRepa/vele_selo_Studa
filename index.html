@@ -254,6 +254,7 @@
 
     <script>
         let threadId = null;
+        let isLocked = false;
     
         async function startThread() {
             try {
@@ -266,15 +267,15 @@
         }
     
         async function sendMessage() {
+            if (isLocked) return;
+
             const userInputElement = document.getElementById('user-input');
             const sendButton = document.querySelector('.chat-input button');
             const userInput = userInputElement.value.trim(); // Trim leading and trailing whitespace
 
             if (!userInput) return; // If input is empty after trimming, do nothing
-
-            // Disable the input and button
-            userInputElement.disabled = true;
-            sendButton.disabled = true;
+            
+            lockInputs();
 
             addMessageToChatLog('user', userInput);
             userInputElement.value = '';
@@ -297,17 +298,55 @@
             } catch (error) {
                 console.error('Error sending message:', error);
             } finally {
-                // Re-enable the input and button
-                userInputElement.disabled = false;
-                sendButton.disabled = false;
-                userInputElement.focus(); // Optionally focus the input field
+                unlockInputs();
             }
+            return Promise.resolve();
+        }
+
+        // Function to lock both FAQ questions and user input
+        function lockInputs() {
+            isLocked = true;
+
+            // Disable all FAQ list items
+            const faqItems = document.querySelectorAll('.faq-list li');
+            faqItems.forEach(item => item.style.pointerEvents = 'none');
+
+            // Disable the input and button
+            const userInputElement = document.getElementById('user-input');
+            const sendButton = document.querySelector('.chat-input button');
+            userInputElement.disabled = true;
+            sendButton.disabled = true;
+        }
+
+        // Function to unlock both FAQ questions and user input
+        function unlockInputs() {
+            isLocked = false;
+
+            // Re-enable all FAQ list items
+            const faqItems = document.querySelectorAll('.faq-list li');
+            faqItems.forEach(item => item.style.pointerEvents = 'auto');
+
+            // Re-enable the input and button
+            const userInputElement = document.getElementById('user-input');
+            const sendButton = document.querySelector('.chat-input button');
+            userInputElement.disabled = false;
+            sendButton.disabled = false;
         }
 
         function handleKeyDown(event) {
             if (event.key === 'Enter') {
                 sendMessage();
             }
+        }
+
+        // Function to send FAQ question to chatbot as user input
+        function sendFAQToChatbot(question) {
+            if (isLocked) return; // Prevent sending multiple requests
+
+            const userInputElement = document.getElementById('user-input');
+            userInputElement.value = question;
+            sendMessage();
+            openChatbot();
         }
 
         function addMessageToChatLog(sender, message) {
@@ -317,7 +356,7 @@
             // Da se znebiš anotacij/citatov!
             const cleanedMessage = message.replace(/【.*?】/g, '');
 
-            messageElement.textContent = message;
+            messageElement.textContent = cleanedMessage;
             chatLog.appendChild(messageElement);
             chatLog.scrollTop = chatLog.scrollHeight;
         }
@@ -363,14 +402,7 @@
 
         // Open the chatbot automatically when the page loads
         window.onload = openChatbotOnLoad;
-
-        // Function to send FAQ question to chatbot as user input
-        function sendFAQToChatbot(question) {
-            const userInputElement = document.getElementById('user-input');
-            userInputElement.value = question;
-            sendMessage();
-            openChatbot();
-        }
     </script>
+    
 </body>
 </html>
